@@ -61,9 +61,12 @@ Don't forget to update the firewall accordingly: inbound connections to this por
 <br>
 
 ```
-root_url = https://your_domain_name:your_custom_port
 cert_file = /etc/grafana/selfsigned.crt
 cert_key = /etc/grafana/selfsigned.key
+```
+If you have a valid SSL certificate and the server IP is associated to your domain, you can also update the following line, else leave it commented out.
+```
+root_url = https://your_domain_name:your_custom_port
 ```
 
 Next, edit the following:
