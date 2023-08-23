@@ -84,13 +84,18 @@ If you would like to log into the interface using your Google or Github account,
 
 Else, save and exit, then restart the service with `systemctl restart grafana-server`.
 
-The Grafana interface should now be reachable at `https://your_ip:your_custom_port/`, with the warning regarding the SSL certificate that was mentioned earlier. You can ignore this warning and proceed (on Chrome, click on **Advanced** then **Continue to server_ip**).
+The Grafana interface should now be reachable at `https://your_ip:your_custom_port/`, with the warning regarding the SSL certificate that was mentioned earlier. You can ignore this warning and proceed (on Chrome or Firefox, click on **Advanced** then **Continue**).
+
+![image](https://github.com/elys-network/grafana/assets/65887967/4f5fa112-bad3-43f4-9553-c839565a00cc)
+
 
 Log in using the default credentials: `username = admin, password = admin`.<br>
 The interface will immediately prompt you to set up a new password, and once done, you will land on the main page.<br>
 
 You can click on the menu (the usual "hamburger" icon on the top left) and update this admin user details, create others, etc. Nothing is really important at this point.<br>
 Perhaps you can improve the overall readability of the interface by switching the colorscheme: *Default Preferences* --> *UI Theme* --> set to *Light* and hit the Save button.
+
+![image](https://github.com/elys-network/grafana/assets/65887967/dc283933-38d8-42a7-acd7-0a32516cb4c3)
 
 For now, we are done here!
 
@@ -116,6 +121,7 @@ Either do it manually or run the below command:
 ```
 sed -i 's/"localhost:9090"/"localhost:9100","localhost:26660"/g' prometheus.yml
 ```
+(Changing default port 9090 to 9100 is to avoid a conflict with node_exporter's default port).
 
 Follow with:
 
@@ -214,6 +220,8 @@ rm -r prometheus-*
 
 **You *MUST* configure the firewall so that connections from the Grafana server to port 9090 on the node's machine are allowed**
 
+**Do *NOT* leave this port open to all IPs, otherwise everyone case see everything about your node**
+
 Verify that it is working by running the following from the Grafana server: `curl node_server_ip:9090`.<br>
 This should display `<a href="/graph">Found</a>.`. If it does not and just hangs, verify the firewall on the node server.
 
@@ -226,7 +234,7 @@ This should display `<a href="/graph">Found</a>.`. If it does not and just hangs
 
 ## 4. Create a dashboard
 
-- We provide a dashboard template to help you kickstart your monitoring by analyzing a few important metrics: download it [here](https://github.com/elys-network/grafana/blob/main/dashboard_template.json)
+- We provide a dashboard template to help you kickstart your monitoring by analyzing a few important metrics: download it [here](https://github.com/elys-network/grafana/blob/main/grafana_template.json)
 - Menu --> Dashboards --> Import --> Select the downloaded .json file.
 - Alternatively, you can try some [community templates](https://grafana.com/grafana/dashboards/?search=cosmos&dataSource=prometheus) -- open the one you want and copy its **ID**, then paste it in the `Import via grafana.com` line and click on **Load**.
 - You can also build your own dashboard from scratch.
@@ -244,29 +252,141 @@ This should display `<a href="/graph">Found</a>.`. If it does not and just hangs
 
 The next and hopefully final step is to configure Grafana so that you receive an alert in case of an issue.
 
-We'll show how to set up Discord alerts -- Grafana supports a wide range of communication channels and this is only one example.
+We'll show how to set up Discord alerts -- Grafana supports a wide range of communication channels and this is only one example.<br>
+You need to have an administrator access to a Discord channel. Best is to have your own server and set up a private channel, as you don't want your alerts to be public: right click on the channel --> **Edit Channel** --> **Integrations** --> **New webhook** --> copy the address.
 
-- You need to have an administrator access to a Discord channel. Best is to have your own server and set up a private channel, as you don't want your alerts to be public.
-- Right click on the channel --> **Edit Channel** --> **Integrations** --> **New webhook** --> copy the address.
-- In Grafana,  **Menu** --> **Alerting** --> **Contact points** --> **Add contact point**
-- Name it as you wish, and in the `Integration` list, select `Discord`, then paste your webhook address in the relevant field.
-- You can already click on the **Test** button, and you should see a default message land in that channel.
-- Next up, you can customize a bit, for example you can ensure that specific users are tagged in the messages: in the **Message Content** field, define the message followed by the user id, e.g.:<br>
-`{{ template "default.message" . }}  <@675319125258595896>  <@951375404471185732>`
-- You can get your user id from the Discord app by clicking on your username at the bottom of the window, then clicking on **Copy User ID**.
-- If you click on **Test** again, you will see that the users specified are now tagged.
-- You can also disable the *Resolved* message when the metrics return to normal by clicking on the next checkbox. This may be relevant for some types of alerts, such as missed blocks or a change in voting power.<br> In other cases you want to know if the situation is back to normal (e.g. node is down), so you can set up 2 different contact points that will be identical except for that parameter, called *Default* and *No_resolved* for example.
+- We'll start with creating an alert template: **Menu** --> **Alerting** --> **Contact points** --> **Add template**
+  - Give a name to your template, e.g. *Discord*
+  - In the **Content** field, paste the following:
 
-Now we'll create the alert rules for some of the dashboard's panels.
+`````
+{{ define "discord.default.description" }}
+{{ "ALERTING" }}
+{{ range . }}
+{{ .Annotations.description }}
+{{ with .ValueString }}
+{{- . | reReplaceAll `\[\s` "" | reReplaceAll `\],\s` ""  | reReplaceAll `\]` "" | reReplaceAll `labels=.*}` "" | reReplaceAll `value=([0-9\.]+)` "**$1**" }} 
+        {{ end }}
+{{ end }}
+{{ end }}
+{{ define "discord.resolved.description" }}
+{{ "RESOLVED" }}
+{{ range . }}
+{{ .Annotations.description }}
+{{ with .ValueString }}
+{{- . | reReplaceAll `\[\s` "" | reReplaceAll `\],\s` ""  | reReplaceAll `\]` "" | reReplaceAll `labels=.*}` "" | reReplaceAll `value=([0-9\.]+)` "**$1**" }} 
+        {{ end }}
+{{ end }}
+{{ end }}
+{{ define "discord" }}
+        {{ if gt (len .Alerts.Firing) 0 }}{{ template "discord.default.description" .Alerts.Firing }}{{ end }}
+        {{ if gt (len .Alerts.Resolved) 0 }}{{ template "discord.resolved.description" .Alerts.Resolved }}{{ end }}
+{{ end }}
+`````
 
-- Edit the **Up** panel, click on the **Alert** tab, then on the button **Create alert rule from this panel**.
-- Edit the **time range** data, by default *now-12h to now*, which means that the rule evaluates the metrics on the last 12h which is not ideal.
-- Set the **From** value to `now-10s`, which means that the rule will alert if the metric is 0 over the last 10 seconds, then click on **Apply time range**.
-- Below, next to **B**, click on *Reduce* and select *Classic condition*
-  - Set the rule as follows: `WHEN avg() OF A IS BELOW 1`
-- Delete the condition **C** on the right
-- Below, click on the drop-down list below **Folder** and either click out immediately to use **General**, or define a new folder e.g. Elys.
-- Evaluation group: click on the drop-down list and write **Up** (or whatever name you want to give it), then Enter.
-- Evaluate every: **10s**
-- For: **0s** (if the node is down, you want to be alerted immediately)
-- **Configure no data and error handling**: set **Alerting** for both.
+- This uses the Go templating language: check the [documentation](https://grafana.com/docs/grafana/latest/alerting/manage-notifications/template-notifications/) to learn how to customize the alerts.
+
+- Save the template, then
+
+<br>
+
+- Click on **Add contact point**
+  - Name it as you wish, and in the `Integration` list select `Discord`, then paste your webhook address in the relevant field.
+  - You can already click on the **Test** button, and you should see a default message land in that channel.
+  - You can leave the **Title** field as it is or customize it.
+  - Next up, you can customize a bit, for example you can ensure that specific users are tagged in the messages: in the **Message Content** field, define the message followed by the user id, e.g.:<br>
+`{{ template "discord.message" . }}  <@675319125258595896>  <@951375404471185732>`
+    - ⚠ Make sure to set the template name properly (the one we create above). 
+    - You can get your user id from the Discord app by clicking on your username at the bottom of the window, then clicking on **Copy User ID**.
+    - If you click on **Test** again, you will see that the users specified are now tagged.
+  - You can also disable the *Resolved* message when the metrics return to normal by clicking on the next checkbox. This may be relevant for some types of alerts, such as missed blocks or a change in voting power.<br> In other cases you want to know if the situation is back to normal (e.g. node is down), so you can set up **2 different contact points** that will be identical except for that parameter, called *Default* and *No_resolved* for example.
+  - Save the contact points.
+
+<br>
+
+Now we'll create the alert rules for some of the dashboard's panels. **Note that the rules and algorithms we'll propose here are extremely basic and serve as examples. We recommend that you check the capabilities of the software and test variations and combinations of the functions -- you can build very precise rules once you understand how it works.**
+
+- Starting with the **Up** panel:
+  - Click on the **Alert** tab, then on the button **Create alert rule from this panel**.
+  - In *Section 1* you can set a custom name for this alert.
+  - In *Section 2*, edit the **time range** data, by default *now-12h to now*, which means that the rule evaluates the metrics on the last 12h which is not ideal.
+  - Set the **From** value to `now-10s`, which means that the rule will check the metric value over the last 10 seconds, then click on **Apply time range**.
+  - Below, next to **B**, click on *Reduce* and select *Classic condition*
+   - Set the rule as follows: `WHEN avg() OF A IS BELOW 1`
+   - Delete the condition **C** on the right
+  - In *Section 3*, click on the drop-down list below **Folder** and either click out immediately to use **General**, or define a new folder e.g. Elys.
+  - Evaluation group: click on the drop-down list and write **Up** (or whatever name you want to give it), then Enter.
+  - Evaluate every: **10s**
+  - For: **30s** (if the node is down for more than 30s, an alert will be sent. You can set that to 0s if you want to be alerted immediately, but sometimes there's simply a network disturbance and it would cause a false alert)
+  - **Configure no data and error handling**: set **Alerting** for both. --> This way, you'll be alerted if the server goes down.
+  - Next, you may want to add some text to the alert message: click on **Add annotation** --> **Description** --> write the text of your choice, e.g. "Elys is down"
+
+   ![image](https://github.com/elys-network/grafana/assets/65887967/0de82ec7-dc05-43a2-a844-c199f0eaaab4)
+
+  - At the top of the page, click on **Save rule and exit**
+
+<br>
+
+- **Missed Blocks** panel:
+  - Time range: **now-5m**
+  - Condition: *Classic condition* -->  `WHEN diff_abs() OF A IS ABOVE 5` --> alert only if the node missed more than 5 blocks in the last 5 minutes (change the value as you like)
+  - Evaluate every: **5m**
+  - For: **10s**
+  - **Configure no data and error handling**: set **Alerting** for both.
+  - Set a custom description
+  - In *Section 6*: this is an alert where it is best to not receive a *Resolved* notification:
+   - In the *Choose key* field, select **Contact**, and in *Choose value*, select *No_resolved*
+  - Save & exit.
+ 
+<br>
+
+- **Block Height**: this rule will alert if the node stops minting new blocks.
+  - Time range: **now-1m**
+  - Condition: *Classic condition* -->  `WHEN diff() OF A IS BELOW 1` --> will alert if no new block was minted in the past minute.
+  - Evaluate every: **1m**
+  - For: **0s**
+  - **Configure no data and error handling**: set **Alerting** for both.
+  - Set a custom description
+  - Save & exit.    
+
+<br>
+
+- **Signed Blocks**: this rule will alert if the node stops signing blocks, indicating that it is either jailed or fell out of the active set.
+  - Time range: **now-30**
+  - Condition: *Classic condition* -->  `WHEN diff() OF A IS BELOW 1`.
+  - Evaluate every: **10s**
+  - For: **1m**
+  - **Configure no data and error handling**: set **Alerting** for both.
+  - Set a custom description
+  - Save & exit.
+
+<br>
+
+ - **Total Voting Power**: this rule will alert when the voting power has increased or decreased by more than 5% (adjust the value as you like).
+   - Time range: **now-2m**
+   - Condition: *Classic condition* -->  `WHEN percent_diff() OF A IS OUTSIDE RANGE -5 to 5`.
+   - Evaluate every: **1m**
+   - For: **0s**
+   - **Configure no data and error handling**: set **Alerting** for both.
+   - Set a custom description
+   - In *Section 6*: in the *Choose key* field, select **Contact**, and in *Choose value*, select *No_resolved* 
+   - Save & exit.
+
+<br>
+
+ - **Disk Space** panel(s): alert when the remaining available space falls below 5G (or more, or less: it has to give you enough time to resolve the issue before the disk is full, else the node will stop).
+   - Time range: **now-30m**
+   - Condition: *Classic condition* -->  `WHEN avg() OF A IS BELOW 5`.
+   - Evaluate every: **10m**
+   - For: **10m**
+   - **Configure no data and error handling**: set **Alerting** for both.
+   - Set a custom description
+   - Save & exit
+  
+ <br>
+ You can then add other rules on the remaining panels, to alert you when the CPU load or memory usage exceeds a threshold for example.
+
+
+ Your monitoring solution is now operational and you will be alerted whenever a problem arises with your node or server!
+ 
+    
