@@ -668,7 +668,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "up{job=\"datasource\"}",
+          "expr": "up{instance=\"localhost:26660\"}",
           "interval": "",
           "legendFormat": "{{hostname}}",
           "range": true,
