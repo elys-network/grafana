@@ -99,7 +99,7 @@ Perhaps you can improve the overall readability of the interface by switching th
 
 For now, we are done here!
 
-## 2. Configure of the node and server
+## 2. Configuration of the node and server
 
 For Grafana to connect to the node and retrieve useful data, a few configuration items and packages are required.<br>
 Connect to the node server, and:
