@@ -245,12 +245,12 @@ This should display `<a href="/graph">Found</a>.`. If it does not and just hangs
   - Click on the 3 vertical dots at the upper right of the panel, then on **Edit**.
   - In the **Metrics browser** line where it currently says `node_filesystem_avail_bytes{mountpoint="/dev/sdb"}/1073741824`, update the path to match the correct one and click on **Run queries** to verify that it works.
   - Click Apply or Save in the upper right, else just hit Escape.
-- If you are running your node on another port than 26660, edit the concerned panels and adjust the port accordingly. 
+- If you are running your node on another port than 26660, edit the concerned panels and adjust the port accordingly in that **Metrics browser** line.
 - Once done, click on the small **Save** icon on the upper right (which resembles an old 3"5 floppy disk) and confirm. Do not omit this step or your changes since the last save will be lost. 
 
 ## 5. Alerting
 
-The next and hopefully final step is to configure Grafana so that you receive an alert in case of an issue.
+The next and final step is to configure Grafana so that you receive an alert in case of an issue.
 
 We'll show how to set up Discord alerts -- Grafana supports a wide range of communication channels and this is only one example.<br>
 You need to have an administrator access to a Discord channel. Best is to have your own server and set up a private channel, as you don't want your alerts to be public: right click on the channel --> **Edit Channel** --> **Integrations** --> **New webhook** --> copy the address.
@@ -291,7 +291,7 @@ You need to have an administrator access to a Discord channel. Best is to have y
 <br>
 
 - Click on **Add contact point**
-  - Name it as you wish, and in the `Integration` list select `Discord`, then paste your webhook address in the relevant field.
+  - Name it as you wish, and in the `Integration` list select `Discord`, then **paste your webhook address** in the relevant field.
   - You can already click on the **Test** button, and you should see a default message land in that channel.
   - You can leave the **Title** field as it is or customize it.
   - Next up, you can customize a bit, for example you can ensure that specific users are tagged in the messages: in the **Message Content** field, define the message followed by the user id, e.g.:<br>
