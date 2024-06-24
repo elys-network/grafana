@@ -69,15 +69,9 @@ If you have a valid SSL certificate and the server IP is associated to your doma
 root_url = https://your_domain_name:your_custom_port
 ```
 
-Next, edit the following:
-
-In the section `[unified_alerting]`:
+In the section `[unified_alerting]`, make sure that the item is active:
 ```
 enabled = true
-```
-In the section `[alerting]`:
-```
-enabled = false
 ```
 
 If you would like to log into the interface using your Google or Github account, you can configure that in the relevant sections further in the file.<br>
@@ -172,7 +166,8 @@ WantedBy=multi-user.target
 
 Save and exit, and let's do the same with Node Exporter:
 
-```curl -s https://api.github.com/repos/prometheus/node_exporter/releases/latest | grep browser_download_url | grep linux-amd64 | cut -d '"' -f 4 | wget -qi -
+```
+curl -s https://api.github.com/repos/prometheus/node_exporter/releases/latest | grep browser_download_url | grep linux-amd64 | cut -d '"' -f 4 | wget -qi -
 tar xf node_exporter*.tar.gz
 mv node_exporter*/node_exporter /etc/prometheus
 ```
