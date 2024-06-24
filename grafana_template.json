@@ -761,7 +761,7 @@
             "uid": ""
           },
           "editorMode": "code",
-          "expr": "tendermint_consensus_validator_missed_blocks{job=\"datasource\"}",
+          "expr": "cometbft_consensus_validator_missed_blocks{job=\"datasource\"}",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -857,7 +857,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "tendermint_consensus_height{instance=\"localhost:26660\"}",
+          "expr": "cometbft_consensus_height{instance=\"localhost:26660\"}",
           "interval": "",
           "legendFormat": "{{hostname}}",
           "range": true,
@@ -972,7 +972,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "tendermint_consensus_validator_power{instance=\"localhost:26660\"}",
+          "expr": "cometbft_consensus_validator_power{instance=\"localhost:26660\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
